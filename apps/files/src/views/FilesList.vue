@@ -175,22 +175,23 @@ import AccountPlusIcon from 'vue-material-design-icons/AccountPlus.vue'
 import ViewGridIcon from 'vue-material-design-icons/ViewGrid.vue'
 
 import { action as sidebarAction } from '../actions/sidebarAction.ts'
-import { useNavigation } from '../composables/useNavigation.ts'
+import { humanizeWebDAVError } from '../utils/davUtils.ts'
+import { isDialogOpened } from '../utils/dialogUtils.ts'
 import { useFileListWidth } from '../composables/useFileListWidth.ts'
-import { useRouteParameters } from '../composables/useRouteParameters.ts'
 import { useFilesStore } from '../store/files.ts'
 import { useFiltersStore } from '../store/filters.ts'
+import { useNavigation } from '../composables/useNavigation.ts'
 import { usePathsStore } from '../store/paths.ts'
+import { useRouteParameters } from '../composables/useRouteParameters.ts'
 import { useSelectionStore } from '../store/selection.ts'
 import { useUploaderStore } from '../store/uploader.ts'
 import { useUserConfigStore } from '../store/userconfig.ts'
 import { useViewConfigStore } from '../store/viewConfig.ts'
 import BreadCrumbs from '../components/BreadCrumbs.vue'
+import DragAndDropNotice from '../components/DragAndDropNotice.vue'
 import FilesListVirtual from '../components/FilesListVirtual.vue'
 import filesSortingMixin from '../mixins/filesSorting.ts'
 import logger from '../logger.ts'
-import DragAndDropNotice from '../components/DragAndDropNotice.vue'
-import { humanizeWebDAVError } from '../utils/davUtils.ts'
 
 const isSharingEnabled = (getCapabilities() as { files_sharing?: boolean })?.files_sharing !== undefined
 
@@ -541,14 +542,18 @@ export default defineComponent({
 		subscribe('files:node:deleted', this.onNodeDeleted)
 		subscribe('files:node:updated', this.onUpdatedNode)
 
-		// reload on settings change
+		// Reload on settings change
 		subscribe('files:config:updated', this.fetchContent)
+
+		// Listen for keyboard events
+		document.addEventListener('keydown', this.onKeyDown)
 	},
 
 	unmounted() {
 		unsubscribe('files:node:deleted', this.onNodeDeleted)
 		unsubscribe('files:node:updated', this.onUpdatedNode)
 		unsubscribe('files:config:updated', this.fetchContent)
+		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
@@ -730,6 +735,32 @@ export default defineComponent({
 				nodes = filter.filter(nodes)
 			}
 			this.dirContentsFiltered = nodes
+		},
+
+		onKeyDown(event: KeyboardEvent) {
+			// Don't react to the event if a dialog is open
+			if (isDialogOpened()) {
+				return
+			}
+
+			// alt + up goes to parent directory
+			if (event.key === 'ArrowUp' && event.altKey) {
+				event.preventDefault()
+				event.stopPropagation()
+				const prevDir = dirname(this.directory)
+				logger.debug('Navigating to parent directory', { prevDir })
+				window.OCP.Files.Router.goToRoute(
+					null,
+					{ ...this.$route.params },
+					{ ...this.$route.query, dir: prevDir },
+				)
+			}
+
+			// Don't react if ctrl, meta or alt key is pressed,
+			// we don't need those on the following shortcuts
+			if (event.ctrlKey || event.altKey || event.metaKey) {
+				return
+			}
 		},
 	},
 })
