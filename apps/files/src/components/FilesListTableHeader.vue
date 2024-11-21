@@ -64,8 +64,9 @@ import { defineComponent } from 'vue'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadioSwitch.js'
 import FilesListTableHeaderButton from './FilesListTableHeaderButton.vue'
 
-import { useNavigation } from '../composables/useNavigation'
+import { isDialogOpened } from '../utils/dialogUtils.ts'
 import { useFilesStore } from '../store/files.ts'
+import { useNavigation } from '../composables/useNavigation'
 import { useSelectionStore } from '../store/selection.ts'
 import filesSortingMixin from '../mixins/filesSorting.ts'
 import logger from '../logger.ts'
@@ -155,6 +156,14 @@ export default defineComponent({
 		},
 	},
 
+	beforeMount() {
+		document.addEventListener('keydown', this.onKeyDown)
+	},
+
+	beforeDestroy() {
+		document.removeEventListener('keydown', this.onKeyDown)
+	},
+
 	methods: {
 		ariaSortForMode(mode: string): ARIAMixin['ariaSort'] {
 			if (this.sortingMode === mode) {
@@ -169,6 +178,32 @@ export default defineComponent({
 				'files-list__column--sortable': !!column.sort,
 				'files-list__row-column-custom': true,
 				[`files-list__row-${this.currentView?.id}-${column.id}`]: true,
+			}
+		},
+
+		onKeyDown(event: KeyboardEvent) {
+			// Don't react to the event if a dialog is open
+			if (isDialogOpened()) {
+				return
+			}
+
+			// ctrl+a selects all
+			if (event.key === 'a' && event.ctrlKey) {
+				this.onToggleAll(true)
+				event.preventDefault()
+				event.stopPropagation()
+			}
+
+			// Don't react if ctrl, meta or alt key is pressed, we don't need those anymore
+			if (event.ctrlKey || event.altKey || event.metaKey) {
+				return
+			}
+
+			// Escape key cancels selection
+			if (event.key === 'Escape' && (this.isSomeSelected || this.isAllSelected)) {
+				this.resetSelection()
+				event.preventDefault()
+				event.stopPropagation()
 			}
 		},
 
