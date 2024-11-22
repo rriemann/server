@@ -54,7 +54,7 @@ export const action = new FileAction({
 			window.OCP.Files.Router.goToRoute(
 				null,
 				{ view: view.id, fileid: String(node.fileid) },
-				{ ...window.OCP.Files.Router.query, dir },
+				{ ...window.OCP.Files.Router.query, dir, opendetails: 'true' },
 				true,
 			)
 

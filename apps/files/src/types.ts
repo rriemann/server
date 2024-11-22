@@ -95,6 +95,11 @@ export interface DragAndDropStore {
 	dragging: FileSource[]
 }
 
+// Active node store
+export interface ActiveStore {
+	active: Node|null
+}
+
 export interface TemplateFile {
 	app: string
 	label: string

@@ -12,7 +12,6 @@
 			isMtimeAvailable,
 			isSizeAvailable,
 			nodes,
-			fileListWidth,
 		}"
 		:scroll-to-index="scrollToIndex"
 		:caption="caption">
@@ -69,9 +68,11 @@ import { subscribe, unsubscribe } from '@nextcloud/event-bus'
 import { defineComponent } from 'vue'
 
 import { action as sidebarAction } from '../actions/sidebarAction.ts'
+import { getSummaryFor } from '../utils/fileUtils'
+import { isDialogOpened } from '../utils/dialogUtils.ts'
+import { useActiveStore } from '../store/active.ts'
 import { useFileListWidth } from '../composables/useFileListWidth.ts'
 import { useRouteParameters } from '../composables/useRouteParameters.ts'
-import { getSummaryFor } from '../utils/fileUtils'
 import { useSelectionStore } from '../store/selection.js'
 import { useUserConfigStore } from '../store/userconfig.ts'
 
@@ -113,18 +114,24 @@ export default defineComponent({
 	},
 
 	setup() {
-		const userConfigStore = useUserConfigStore()
+		const activeStore = useActiveStore()
 		const selectionStore = useSelectionStore()
+		const userConfigStore = useUserConfigStore()
+
 		const fileListWidth = useFileListWidth()
-		const { fileId, openFile } = useRouteParameters()
+		const { fileId, openDetails, openFile } = useRouteParameters()
 
 		return {
 			fileId,
 			fileListWidth,
+			openDetails,
 			openFile,
 
-			userConfigStore,
+			activeStore,
 			selectionStore,
+			userConfigStore,
+
+			t,
 		}
 	},
 
@@ -199,12 +206,20 @@ export default defineComponent({
 			handler() {
 				// wait for scrolling and updating the actions to settle
 				this.$nextTick(() => {
-					if (this.fileId) {
-						if (this.openFile) {
-							this.handleOpenFile(this.fileId)
-						} else {
-							this.unselectFile()
-						}
+					if (this.fileId && this.openFile) {
+						this.handleOpenFile(this.fileId)
+					}
+				})
+			},
+			immediate: true,
+		},
+
+		openDetails: {
+			handler() {
+				// wait for scrolling and updating the actions to settle
+				this.$nextTick(() => {
+					if (this.fileId && this.openDetails) {
+						this.openSidebarForFile(this.fileId)
 					}
 				})
 			},
@@ -217,34 +232,26 @@ export default defineComponent({
 		const mainContent = window.document.querySelector('main.app-content') as HTMLElement
 		mainContent.addEventListener('dragover', this.onDragOver)
 
-		subscribe('files:sidebar:closed', this.unselectFile)
-
-		// If the file list is mounted with a fileId specified
-		// then we need to open the sidebar initially
-		if (this.fileId) {
-			this.openSidebarForFile(this.fileId)
-		}
+		subscribe('files:sidebar:closed', this.onSidebarClosed)
+		document.addEventListener('keydown', this.onKeyDown)
 	},
 
 	beforeDestroy() {
 		const mainContent = window.document.querySelector('main.app-content') as HTMLElement
 		mainContent.removeEventListener('dragover', this.onDragOver)
 
-		unsubscribe('files:sidebar:closed', this.unselectFile)
+		unsubscribe('files:sidebar:closed', this.onSidebarClosed)
+		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
-		// Open the file sidebar if we have the room for it
-		// but don't open the sidebar for the current folder
 		openSidebarForFile(fileId) {
-			if (document.documentElement.clientWidth > 1024 && this.currentFolder.fileid !== fileId) {
-				// Open the sidebar for the given URL fileid
-				// iif we just loaded the app.
-				const node = this.nodes.find(n => n.fileid === fileId) as NcNode
-				if (node && sidebarAction?.enabled?.([node], this.currentView)) {
-					logger.debug('Opening sidebar on file ' + node.path, { node })
-					sidebarAction.exec(node, this.currentView, this.currentFolder.path)
-				}
+			// Open the sidebar for the given URL fileid
+			// iif we just loaded the app.
+			const node = this.nodes.find(n => n.fileid === fileId) as NcNode
+			if (node && sidebarAction?.enabled?.([node], this.currentView)) {
+				logger.debug('Opening sidebar on file ' + node.path, { node })
+				sidebarAction.exec(node, this.currentView, this.currentFolder.path)
 			}
 		},
 
@@ -257,19 +264,39 @@ export default defineComponent({
 
 				const index = this.nodes.findIndex(node => node.fileid === fileId)
 				if (warn && index === -1 && fileId !== this.currentFolder.fileid) {
-					showError(this.t('files', 'File not found'))
+					showError(t('files', 'File not found'))
 				}
+
 				this.scrollToIndex = Math.max(0, index)
 			}
 		},
 
+		/**
+		 * Unselect the current file and clear open parameters from the URL
+		 */
 		unselectFile() {
-			// If the Sidebar is closed and if openFile is false, remove the file id from the URL
-			if (!this.openFile && OCA.Files.Sidebar.file === '') {
+			const query = { ...this.$route.query }
+			delete query.openfile
+			delete query.opendetails
+
+			this.activeStore.clearActiveNode()
+			window.OCP.Files.Router.goToRoute(
+				null,
+				{ ...this.$route.params, fileid: String(this.currentFolder.fileid ?? '') },
+				query,
+				true,
+			)
+		},
+
+		// When sidebar is closed, we remove the openDetails parameter from the URL
+		onSidebarClosed() {
+			if (this.openDetails) {
+				const query = { ...this.$route.query }
+				delete query.opendetails
 				window.OCP.Files.Router.goToRoute(
 					null,
-					{ ...this.$route.params, fileid: String(this.currentFolder.fileid ?? '') },
-					this.$route.query,
+					this.$route.params,
+					query,
 				)
 			}
 		},
@@ -332,7 +359,52 @@ export default defineComponent({
 			}
 		},
 
-		t,
+		onKeyDown(event: KeyboardEvent) {
+			// Don't react to the event if a dialog is open
+			if (isDialogOpened()) {
+				return
+			}
+
+			// Don't react if ctrl, meta or alt key is pressed, we don't need those here
+			if (event.ctrlKey || event.altKey || event.metaKey) {
+				return
+			}
+
+			if (event.key === 'Escape') {
+				this.unselectFile()
+			}
+
+			// Up and down arrow keys
+			if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+				const index = this.nodes.findIndex(node => node.fileid === this.fileId) ?? 0
+				const nextIndex = event.key === 'ArrowUp' ? index - 1 : index + 1
+				if (nextIndex < 0 || nextIndex >= this.nodes.length) {
+					return
+				}
+
+				const nextNode = this.nodes[nextIndex]
+
+				if (nextNode && nextNode?.fileid) {
+					logger.debug('Navigating to file ' + nextNode.path, { nextNode, fileid: nextNode.fileid })
+					this.scrollToFile(nextNode.fileid)
+
+					// Remove openfile and opendetails from the URL
+					const query = { ...this.$route.query }
+					delete query.openfile
+					delete query.opendetails
+
+					this.activeStore.setActiveNode(nextNode)
+
+					// Silent update of the URL
+					window.OCP.Files.Router.goToRoute(
+						null,
+						{ ...this.$route.params, fileid: String(nextNode.fileid) },
+						query,
+						true,
+					)
+				}
+			}
+		},
 	},
 })
 </script>

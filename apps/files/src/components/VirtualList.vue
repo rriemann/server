@@ -66,7 +66,6 @@ interface RecycledPoolItem {
 }
 
 type DataSource = File | Folder
-
 type DataSourceKey = keyof DataSource
 
 export default defineComponent({
@@ -260,7 +259,7 @@ export default defineComponent({
 			this.tableHeight = root?.clientHeight ?? 0
 			logger.debug('VirtualList: resizeObserver updated')
 			this.onScroll()
-		}, 100, false))
+		}, 100, { immediate: false }))
 
 		this.resizeObserver.observe(before)
 		this.resizeObserver.observe(root)
@@ -284,27 +283,48 @@ export default defineComponent({
 
 	methods: {
 		scrollTo(index: number) {
+			if (!this.$el) {
+				return
+			}
 			const targetRow = Math.ceil(this.dataSources.length / this.columnCount)
 			if (targetRow < this.rowCount) {
 				logger.debug('VirtualList: Skip scrolling. nothing to scroll', { index, targetRow, rowCount: this.rowCount })
 				return
 			}
-			this.index = index
+
 			// Scroll to one row and a half before the index
-			const scrollTop = (Math.floor(index / this.columnCount) - 0.5) * this.itemHeight + this.beforeHeight
-			logger.debug('VirtualList: scrolling to index ' + index, { scrollTop, columnCount: this.columnCount })
+			const scrollTop = this.indexToScrollPos(index)
+			logger.debug('VirtualList: scrolling to index ' + index, { scrollTop, columnCount: this.columnCount, beforeHeight: this.beforeHeight })
 			this.$el.scrollTop = scrollTop
 		},
 
 		onScroll() {
 			this._onScrollHandle ??= requestAnimationFrame(() => {
 				this._onScrollHandle = null
-				const topScroll = this.$el.scrollTop - this.beforeHeight
-				const index = Math.floor(topScroll / this.itemHeight) * this.columnCount
+
+				const index = this.scrollPosToIndex(this.$el.scrollTop)
+				if (index === this.index) {
+					return
+				}
+
 				// Max 0 to prevent negative index
-				this.index = Math.max(0, index)
+				this.index = Math.max(0, Math.floor(index))
 				this.$emit('scroll')
 			})
+		},
+
+		// Convert scroll position to index
+		// It should be the opposite of `indexToScrollPos`
+		scrollPosToIndex(scrollPos: number): number {
+			const topScroll = scrollPos - this.beforeHeight + this.itemHeight * 1.5
+			return (topScroll / this.itemHeight) * this.columnCount
+		},
+
+		// Convert index to scroll position
+		// It should be the opposite of `scrollPosToIndex`
+		indexToScrollPos(index: number): number {
+			const rowIndex = (index / this.columnCount)
+			return rowIndex * this.itemHeight + this.beforeHeight - this.itemHeight * 1.5
 		},
 	},
 })
