@@ -298,6 +298,8 @@ export default {
 			copySuccess: true,
 			copied: false,
 			defaultExpirationDateEnabled: false,
+			shareReviewComplete: false,
+			calls: 0,
 
 			// Are we waiting for password/expiration date
 			pending: false,
@@ -472,7 +474,7 @@ export default {
 		 * @return {boolean}
 		 */
 		pendingDataIsMissing() {
-			return this.pendingPassword || this.pendingEnforcedPassword || this.pendingEnforcedExpirationDate
+			return this.pendingPassword || this.pendingEnforcedPassword || this.pendingEnforcedExpirationDate || this.shareRequiresReview
 		},
 		pendingPassword() {
 			return this.config.enableLinkPasswordByDefault && this.isPendingShare
@@ -492,6 +494,10 @@ export default {
 		},
 
 		shareRequiresReview() {
+			console.log("share requires review according to this.shareReviewComplete", this.shareReviewComplete)
+			if (this.shareReviewComplete) {
+				return false
+			}
 			return this.defaultExpirationDateEnabled || this.config.enableLinkPasswordByDefault
 		},
 
@@ -596,8 +602,8 @@ export default {
 		},
 	},
 	mounted() {
+		this.defaultExpirationDateEnabled = this.config.defaultExpirationDate instanceof Date
 		if (this.share) {
-			this.defaultExpirationDateEnabled = this.config.defaultExpirationDate instanceof Date
 			this.share.expireDate = this.defaultExpirationDateEnabled ? this.formatDateToString(this.config.defaultExpirationDate) : ''
 		}
 	},
@@ -627,10 +633,15 @@ export default {
 			// A share would require a review for example is default expiration date is set but not enforced, this allows
 			// the user to review the share and remove the expiration date if they don't want it
 			if ((this.sharePolicyHasRequiredProperties && this.requiredPropertiesMissing) || this.shareRequiresReview) {
+				console.log("Share requires review", {
+					sharePolicyHasRequiredProperties: this.sharePolicyHasRequiredProperties,
+					requiredPropertiesMissing: this.requiredPropertiesMissing,
+					shareRequiresReview: this.shareRequiresReview
+				})
 				this.pending = true
 				this.shareCreationComplete = false
-
-				this.logger.info('Share policy requires mandated properties (password)...')
+				//debugger
+				this.logger.info('Share policy requires a review or has mandated properties (password, expirationDate)...')
 
 				// ELSE, show the pending popovermenu
 				// if password default or enforced, pre-fill with random one
@@ -648,13 +659,17 @@ export default {
 				// freshly created share component
 				this.open = false
 				this.pending = false
+				this.shareReviewComplete = true
 				component.open = true
 
 				// Nothing is enforced, creating share directly
 			} else {
 
+				console.log("Gets here to non review share creation")
+
 				// if a share already exists, pushing it
 				if (this.share && !this.share.id) {
+					console.log("Does not get blocked by share.id")
 					// if the share is valid, create it on the server
 					if (this.checkShare(this.share)) {
 						try {
@@ -678,6 +693,7 @@ export default {
 				const share = new Share(shareDefaults)
 				await this.pushNewLinkShare(share)
 				this.shareCreationComplete = true
+				this.shareReviewComplete = false
 			}
 		},
 
