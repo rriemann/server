@@ -761,6 +761,13 @@ export default defineComponent({
 			if (event.ctrlKey || event.altKey || event.metaKey) {
 				return
 			}
+
+			// V toggle the grid view
+			if (event.key === 'v') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.toggleGridView()
+			}
 		},
 	},
 })
