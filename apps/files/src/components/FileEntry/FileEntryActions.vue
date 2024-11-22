@@ -93,8 +93,10 @@ import NcLoadingIcon from '@nextcloud/vue/dist/Components/NcLoadingIcon.js'
 import ArrowLeftIcon from 'vue-material-design-icons/ArrowLeft.vue'
 import CustomElementRender from '../CustomElementRender.vue'
 
-import { useNavigation } from '../../composables/useNavigation'
+import { isDialogOpened } from '../../utils/dialogUtils.ts'
 import { useFileListWidth } from '../../composables/useFileListWidth.ts'
+import { useNavigation } from '../../composables/useNavigation'
+import { useRouteParameters } from '../../composables/useRouteParameters.ts'
 import logger from '../../logger.ts'
 
 export default defineComponent({
@@ -132,14 +134,20 @@ export default defineComponent({
 	setup() {
 		// The file list is guaranteed to be only shown with active view - thus we can set the `loaded` flag
 		const { currentView } = useNavigation(true)
+		const {
+			directory: currentDir,
+			fileId: currentFileId,
+		} = useRouteParameters()
 
 		const filesListWidth = useFileListWidth()
 		const enabledFileActions = inject<FileAction[]>('enabledFileActions', [])
-
 		return {
+			currentDir,
+			currentFileId,
 			currentView,
 			enabledFileActions,
 			filesListWidth,
+			t,
 		}
 	},
 
@@ -150,10 +158,10 @@ export default defineComponent({
 	},
 
 	computed: {
-		currentDir() {
-			// Remove any trailing slash but leave root slash
-			return (this.$route?.query?.dir?.toString() || '/').replace(/^(.+)\/$/, '$1')
+		isActive() {
+			return String(this.source.fileid) === String(this.currentFileId)
 		},
+
 		isLoading() {
 			return this.source.status === NodeStatus.LOADING
 		},
@@ -234,6 +242,14 @@ export default defineComponent({
 		},
 	},
 
+	beforeMount() {
+		document.addEventListener('keydown', this.onKeyDown)
+	},
+
+	beforeDestroy() {
+		document.removeEventListener('keydown', this.onKeyDown)
+	},
+
 	methods: {
 		actionDisplayName(action: FileAction) {
 			if ((this.gridMode || (this.filesListWidth < 768 && action.inline)) && typeof action.title === 'function') {
@@ -309,7 +325,36 @@ export default defineComponent({
 			})
 		},
 
-		t,
+		onKeyDown(event: KeyboardEvent) {
+			// Don't react to the event if a dialog is open
+			if (isDialogOpened()) {
+				return
+			}
+
+			// Don't react if ctrl, meta or alt key is pressed, we don't need those here
+			if (event.ctrlKey || event.altKey || event.metaKey) {
+				return
+			}
+
+			// Don't react to the event if the file row is not active
+			if (!this.isActive) {
+				return
+			}
+
+			// ESC close the action menu if opened
+			if (event.key === 'Escape' && this.openedMenu) {
+				event.preventDefault()
+				event.stopPropagation()
+				this.openedMenu = false
+			}
+
+			// a open the action menu
+			if (event.key === 'a' && !this.openedMenu) {
+				event.preventDefault()
+				event.stopPropagation()
+				this.openedMenu = true
+			}
+		},
 	},
 })
 </script>
