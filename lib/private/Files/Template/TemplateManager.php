@@ -175,9 +175,12 @@ class TemplateManager implements ITemplateManager {
 	 */
 	private function getTemplateFolder(): Node {
 		if ($this->getTemplatePath() !== '') {
-			return $this->rootFolder->getUserFolder($this->userId)->get($this->getTemplatePath());
+			$path = $this->rootFolder->getUserFolder($this->userId)->get($this->getTemplatePath());
+			if ($path instanceof Folder) {
+				return $path;
+			}
 		}
-		throw new NotFoundException();
+		throw new NotFoundException('Template folder not found or invalid');
 	}
 
 	/**
