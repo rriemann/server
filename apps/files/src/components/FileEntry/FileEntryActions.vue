@@ -277,13 +277,16 @@ export default defineComponent({
 				return
 			}
 
+			// store the source in case it gets removed from the virtual scroller
+			// before the action is done executing.
+			const source = this.source
 			const displayName = action.displayName([this.source], this.currentView)
 			try {
 				// Set the loading marker
 				this.$emit('update:loading', action.id)
-				this.$set(this.source, 'status', NodeStatus.LOADING)
+				this.$set(source, 'status', NodeStatus.LOADING)
 
-				const success = await action.exec(this.source, this.currentView, this.currentDir)
+				const success = await action.exec(source, this.currentView, this.currentDir)
 
 				// If the action returns null, we stay silent
 				if (success === null || success === undefined) {
@@ -301,7 +304,7 @@ export default defineComponent({
 			} finally {
 				// Reset the loading marker
 				this.$emit('update:loading', '')
-				this.$set(this.source, 'status', undefined)
+				this.$set(source, 'status', undefined)
 
 				// If that was a submenu, we just go back after the action
 				if (isSubmenu) {
