@@ -98,6 +98,10 @@ import { useFileListWidth } from '../../composables/useFileListWidth.ts'
 import { useNavigation } from '../../composables/useNavigation'
 import { useRouteParameters } from '../../composables/useRouteParameters.ts'
 import logger from '../../logger.ts'
+import { ACTION_DETAILS } from '../../actions/sidebarAction.ts'
+import { ACTION_RENAME } from '../../actions/renameAction.ts'
+import { ACTION_DELETE } from '../../actions/deleteAction.ts'
+import { ACTION_FAVORITE } from '../../actions/favoriteAction.ts'
 
 export default defineComponent({
 	name: 'FileEntryActions',
@@ -354,6 +358,35 @@ export default defineComponent({
 				event.stopPropagation()
 				this.openedMenu = true
 			}
+
+			// d opens the sidebar
+			if (event.key === 'd') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_DETAILS)!)
+			}
+
+			// F2 renames the file
+			if (event.key === 'F2') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_RENAME)!)
+			}
+
+			// Delete key deletes the file with confirmation
+			if (event.key === 'Delete') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_DELETE)!)
+			}
+
+			// s toggle favorite
+			if (event.key === 's') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_FAVORITE)!)
+			}
+
 		},
 	},
 })

@@ -23,6 +23,8 @@ const shouldFavorite = (nodes: Node[]): boolean => {
 	return nodes.some(node => node.attributes.favorite !== 1)
 }
 
+export const ACTION_FAVORITE = 'favorite'
+
 export const favoriteNode = async (node: Node, view: View, willFavorite: boolean): Promise<boolean> => {
 	try {
 		// TODO: migrate to webdav tags plugin
@@ -59,7 +61,7 @@ export const favoriteNode = async (node: Node, view: View, willFavorite: boolean
 }
 
 export const action = new FileAction({
-	id: 'favorite',
+	id: ACTION_FAVORITE,
 	displayName(nodes: Node[]) {
 		return shouldFavorite(nodes)
 			? t('files', 'Add to favorites')
