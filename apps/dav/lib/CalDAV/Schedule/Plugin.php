@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SPDX-FileCopyrightText: 2016 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -165,7 +166,17 @@ class Plugin extends \Sabre\CalDAV\Schedule\Plugin {
 			if (!$this->scheduleReply($this->server->httpRequest)) {
 				return;
 			}
-			
+
+			// Do not generate iTip and iMip messages if scheduling is disabled for this message
+			// this property is for one time use, and needs to be removed so that if this event
+			// is altered in the future it will correctly generate messages again
+			/** @psalm-suppress UndefinedPropertyFetch */
+			if ($vCal->VEVENT?->{'X-NC-DISABLE-SCHEDULING'}?->getValue() === 'true') {
+				$vCal->VEVENT->remove('X-NC-DISABLE-SCHEDULING');
+				$modified = true;
+				return;
+			}
+
 			/** @var Calendar $calendarNode */
 			$calendarNode = $this->server->tree->getNodeForPath($calendarPath);
 			// extract addresses for owner
