@@ -104,6 +104,7 @@ import FileEntryActions from './FileEntry/FileEntryActions.vue'
 import FileEntryCheckbox from './FileEntry/FileEntryCheckbox.vue'
 import FileEntryName from './FileEntry/FileEntryName.vue'
 import FileEntryPreview from './FileEntry/FileEntryPreview.vue'
+import { isDialogOpened } from '../utils/dialogUtils.ts'
 
 export default defineComponent({
 	name: 'FileEntry',
@@ -228,8 +229,40 @@ export default defineComponent({
 		},
 	},
 
+	beforeMount() {
+		document.addEventListener('keydown', this.onKeyDown)
+	},
+
+	beforeDestroy() {
+		document.removeEventListener('keydown', this.onKeyDown)
+	},
+
 	methods: {
 		formatFileSize,
+
+		onKeyDown(event: KeyboardEvent) {
+			// Don't react to the event if a dialog is open
+			if (isDialogOpened()) {
+				return
+			}
+
+			// Don't react if ctrl, meta or alt key is pressed, we don't need those here
+			if (event.ctrlKey || event.altKey || event.metaKey) {
+				return
+			}
+
+			// Don't react to the event if the file row is not active
+			if (!this.isActive) {
+				return
+			}
+
+			// Enter opens the file
+			if (event.key === 'Enter') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.defaultFileAction?.exec(this.source, this.currentView, this.currentDir)
+			}
+		},
 	},
 })
 </script>

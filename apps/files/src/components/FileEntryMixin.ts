@@ -297,7 +297,7 @@ export default defineComponent({
 				return
 			}
 
-			// Ignore right click (button & 2) and any auxillary button expect mouse-wheel (button & 4)
+			// Ignore right click (button & 2) and any auxiliary button expect mouse-wheel (button & 4)
 			if (Boolean(event.button & 2) || event.button > 4) {
 				return
 			}
