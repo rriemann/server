@@ -519,7 +519,9 @@ class CustomPropertiesBackend implements BackendInterface {
 			$value = $value->getHref();
 		} else {
 			$valueType = self::PROPERTY_TYPE_OBJECT;
-			$value = serialize($value);
+			// serialize produces null character
+			// these can not be properly stored in some databases and need to be replaced
+			$value = str_replace(chr(0), ' ', serialize($value));
 		}
 		return [$value, $valueType];
 	}
