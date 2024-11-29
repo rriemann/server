@@ -376,8 +376,9 @@ export default defineComponent({
 
 			// Up and down arrow keys
 			if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+				const columnCount = this.$refs.table?.columnCount ?? 1
 				const index = this.nodes.findIndex(node => node.fileid === this.fileId) ?? 0
-				const nextIndex = event.key === 'ArrowUp' ? index - 1 : index + 1
+				const nextIndex = event.key === 'ArrowUp' ? index - columnCount : index + columnCount
 				if (nextIndex < 0 || nextIndex >= this.nodes.length) {
 					return
 				}
@@ -385,25 +386,44 @@ export default defineComponent({
 				const nextNode = this.nodes[nextIndex]
 
 				if (nextNode && nextNode?.fileid) {
-					logger.debug('Navigating to file ' + nextNode.path, { nextNode, fileid: nextNode.fileid })
-					this.scrollToFile(nextNode.fileid)
-
-					// Remove openfile and opendetails from the URL
-					const query = { ...this.$route.query }
-					delete query.openfile
-					delete query.opendetails
-
-					this.activeStore.setActiveNode(nextNode)
-
-					// Silent update of the URL
-					window.OCP.Files.Router.goToRoute(
-						null,
-						{ ...this.$route.params, fileid: String(nextNode.fileid) },
-						query,
-						true,
-					)
+					this.setActiveNode(nextNode)
 				}
 			}
+
+			// if grid mode, left and right arrow keys
+			if (this.userConfig.grid_view && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+				const index = this.nodes.findIndex(node => node.fileid === this.fileId) ?? 0
+				const nextIndex = event.key === 'ArrowLeft' ? index - 1 : index + 1
+				if (nextIndex < 0 || nextIndex >= this.nodes.length) {
+					return
+				}
+
+				const nextNode = this.nodes[nextIndex]
+
+				if (nextNode && nextNode?.fileid) {
+					this.setActiveNode(nextNode)
+				}
+			}
+		},
+
+		setActiveNode(node: NcNode & { fileid: number }) {
+			logger.debug('Navigating to file ' + node.path, { node, fileid: node.fileid })
+			this.scrollToFile(node.fileid)
+
+			// Remove openfile and opendetails from the URL
+			const query = { ...this.$route.query }
+			delete query.openfile
+			delete query.opendetails
+
+			this.activeStore.setActiveNode(node)
+
+			// Silent update of the URL
+			window.OCP.Files.Router.goToRoute(
+				null,
+				{ ...this.$route.params, fileid: String(node.fileid) },
+				query,
+				true,
+			)
 		},
 	},
 })
