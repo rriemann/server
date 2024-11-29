@@ -55,9 +55,10 @@
 import type { File, Folder, Node } from '@nextcloud/files'
 import type { PropType } from 'vue'
 
-import { useFileListWidth } from '../composables/useFileListWidth.ts'
 import { defineComponent } from 'vue'
 import debounce from 'debounce'
+
+import { useFileListWidth } from '../composables/useFileListWidth.ts'
 import logger from '../logger.ts'
 
 interface RecycledPoolItem {
@@ -132,20 +133,22 @@ export default defineComponent({
 		// Items to render before and after the visible area
 		bufferItems() {
 			if (this.gridMode) {
+				// 1 row before and after in grid mode
 				return this.columnCount
 			}
+			// 3 rows before and after
 			return 3
 		},
 
 		itemHeight() {
 			// Align with css in FilesListVirtual
-			// 166px + 32px (name) + 16px (mtime) + 16px (padding)
-			return this.gridMode ? (166 + 32 + 16 + 16) : 55
+			// 166px + 32px (name) + 16px (mtime) + 16px (padding top and bottom)
+			return this.gridMode ? (166 + 32 + 16 + 16 + 16) : 55
 		},
 		// Grid mode only
 		itemWidth() {
-			// 166px + 16px padding
-			return 166 + 16
+			// 166px + 16px x 2 (padding left and right)
+			return 166 + 16 + 16
 		},
 
 		rowCount() {
@@ -160,9 +163,13 @@ export default defineComponent({
 
 		/**
 		 * Index of the first item to be rendered
+		 * The index can be any file, not just the first one
+		 * But the start index is the first item to be rendered,
+		 * which needs to align with the column count
 		 */
 		startIndex() {
-			return Math.max(0, this.index - this.bufferItems)
+			const firstColumnIndex = this.index - (this.index % this.columnCount)
+			return Math.max(0, firstColumnIndex - this.bufferItems)
 		},
 
 		/**
@@ -286,9 +293,11 @@ export default defineComponent({
 			if (!this.$el) {
 				return
 			}
+
+			// Check if the content is smaller than the viewport, meaning no scrollbar
 			const targetRow = Math.ceil(this.dataSources.length / this.columnCount)
 			if (targetRow < this.rowCount) {
-				logger.debug('VirtualList: Skip scrolling. nothing to scroll', { index, targetRow, rowCount: this.rowCount })
+				logger.debug('VirtualList: Skip scrolling, nothing to scroll', { index, targetRow, rowCount: this.rowCount })
 				return
 			}
 
@@ -316,16 +325,30 @@ export default defineComponent({
 		// Convert scroll position to index
 		// It should be the opposite of `indexToScrollPos`
 		scrollPosToIndex(scrollPos: number): number {
-			const topScroll = scrollPos - this.beforeHeight + this.itemHeight * 1.5
-			return (topScroll / this.itemHeight) * this.columnCount
+			const topScroll = scrollPos - this.beforeHeight
+			// Max 0 to prevent negative index
+			return Math.max(0, Math.floor(topScroll / this.itemHeight)) * this.columnCount
 		},
 
 		// Convert index to scroll position
 		// It should be the opposite of `scrollPosToIndex`
 		indexToScrollPos(index: number): number {
-			const rowIndex = (index / this.columnCount)
-			return rowIndex * this.itemHeight + this.beforeHeight - this.itemHeight * 1.5
+			return (Math.floor(index / this.columnCount) - 0.5) * this.itemHeight + this.beforeHeight
 		},
+
+		// // Convert scroll position to index
+		// // It should be the opposite of `indexToScrollPos`
+		// scrollPosToIndex(scrollPos: number): number {
+		// 	const topScroll = scrollPos - this.beforeHeight + this.itemHeight * 1.5
+		// 	return (topScroll / this.itemHeight) * this.columnCount
+		// },
+
+		// // Convert index to scroll position
+		// // It should be the opposite of `scrollPosToIndex`
+		// indexToScrollPos(index: number): number {
+		// 	const rowIndex = (index / this.columnCount)
+		// 	return rowIndex * this.itemHeight + this.beforeHeight - this.itemHeight * 1.5
+		// },
 	},
 })
 </script>
