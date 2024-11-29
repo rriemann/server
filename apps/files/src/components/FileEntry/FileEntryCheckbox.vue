@@ -26,6 +26,8 @@ import { defineComponent } from 'vue'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadioSwitch.js'
 import NcLoadingIcon from '@nextcloud/vue/dist/Components/NcLoadingIcon.js'
 
+import { isDialogOpened } from '../../utils/dialogUtils.ts'
+import { useActiveStore } from '../../store/active.ts'
 import { useKeyboardStore } from '../../store/keyboard.ts'
 import { useSelectionStore } from '../../store/selection.ts'
 import logger from '../../logger.ts'
@@ -60,13 +62,21 @@ export default defineComponent({
 	setup() {
 		const selectionStore = useSelectionStore()
 		const keyboardStore = useKeyboardStore()
+		const activeStore = useActiveStore()
+
 		return {
+			activeStore,
 			keyboardStore,
 			selectionStore,
+			t,
 		}
 	},
 
 	computed: {
+		isActive() {
+			return this.activeStore.active?.source === this.source.source
+		},
+
 		selectedFiles() {
 			return this.selectionStore.selected
 		},
@@ -89,6 +99,14 @@ export default defineComponent({
 				? t('files', 'File is loading')
 				: t('files', 'Folder is loading')
 		},
+	},
+
+	beforeMount() {
+		document.addEventListener('keydown', this.onKeyDown)
+	},
+
+	beforeDestroy() {
+		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
@@ -132,7 +150,20 @@ export default defineComponent({
 			this.selectionStore.reset()
 		},
 
-		t,
+		onKeyDown(event: KeyboardEvent) {
+			// Don't react to the event if a dialog is open or the nde is not active
+			if (isDialogOpened() || !this.isActive) {
+				return
+			}
+
+			// ctrl+space toggle selection
+			if (event.key === ' ' && event.ctrlKey) {
+				event.preventDefault()
+				event.stopPropagation()
+				logger.debug('Toggling selection for file', { source: this.source })
+				this.onSelectionChange(!this.isSelected)
+			}
+		},
 	},
 })
 </script>

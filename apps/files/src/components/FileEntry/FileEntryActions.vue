@@ -102,6 +102,7 @@ import { ACTION_DETAILS } from '../../actions/sidebarAction.ts'
 import { ACTION_RENAME } from '../../actions/renameAction.ts'
 import { ACTION_DELETE } from '../../actions/deleteAction.ts'
 import { ACTION_FAVORITE } from '../../actions/favoriteAction.ts'
+import { useActiveStore } from '../../store/active.ts'
 
 export default defineComponent({
 	name: 'FileEntryActions',
@@ -138,16 +139,14 @@ export default defineComponent({
 	setup() {
 		// The file list is guaranteed to be only shown with active view - thus we can set the `loaded` flag
 		const { currentView } = useNavigation(true)
-		const {
-			directory: currentDir,
-			fileId: currentFileId,
-		} = useRouteParameters()
+		const { directory: currentDir } = useRouteParameters()
 
+		const activeStore = useActiveStore()
 		const filesListWidth = useFileListWidth()
 		const enabledFileActions = inject<FileAction[]>('enabledFileActions', [])
 		return {
+			activeStore,
 			currentDir,
-			currentFileId,
 			currentView,
 			enabledFileActions,
 			filesListWidth,
@@ -163,7 +162,7 @@ export default defineComponent({
 
 	computed: {
 		isActive() {
-			return String(this.source.fileid) === String(this.currentFileId)
+			return this.activeStore.active?.source === this.source.source
 		},
 
 		isLoading() {
