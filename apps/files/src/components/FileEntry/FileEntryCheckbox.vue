@@ -23,10 +23,10 @@ import { FileType } from '@nextcloud/files'
 import { translate as t } from '@nextcloud/l10n'
 import { defineComponent } from 'vue'
 
+import { useHotKey } from '@nextcloud/vue/dist/Composables/useHotKey.js'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadioSwitch.js'
 import NcLoadingIcon from '@nextcloud/vue/dist/Components/NcLoadingIcon.js'
 
-import { isDialogOpened } from '../../utils/dialogUtils.ts'
 import { useActiveStore } from '../../store/active.ts'
 import { useKeyboardStore } from '../../store/keyboard.ts'
 import { useSelectionStore } from '../../store/selection.ts'
@@ -101,12 +101,21 @@ export default defineComponent({
 		},
 	},
 
-	beforeMount() {
-		document.addEventListener('keydown', this.onKeyDown)
-	},
+	created() {
+		// ctrl+space toggle selection
+		useHotKey(' ', this.onToggleSelect, {
+			stop: true,
+			prevent: true,
+			ctrl: true,
+		})
 
-	beforeDestroy() {
-		document.removeEventListener('keydown', this.onKeyDown)
+		// ctrl+shift+space toggle range selection
+		useHotKey(' ', this.onToggleSelect, {
+			stop: true,
+			prevent: true,
+			ctrl: true,
+			shift: true,
+		})
 	},
 
 	methods: {
@@ -150,19 +159,14 @@ export default defineComponent({
 			this.selectionStore.reset()
 		},
 
-		onKeyDown(event: KeyboardEvent) {
-			// Don't react to the event if a dialog is open or the nde is not active
-			if (isDialogOpened() || !this.isActive) {
+		onToggleSelect() {
+			// Don't react if the node is not active
+			if (!this.isActive) {
 				return
 			}
 
-			// ctrl+space toggle selection
-			if (event.key === ' ' && event.ctrlKey) {
-				event.preventDefault()
-				event.stopPropagation()
-				logger.debug('Toggling selection for file', { source: this.source })
-				this.onSelectionChange(!this.isSelected)
-			}
+			logger.debug('Toggling selection for file', { source: this.source })
+			this.onSelectionChange(!this.isSelected)
 		},
 	},
 })

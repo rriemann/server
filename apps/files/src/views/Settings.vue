@@ -212,11 +212,11 @@ import Setting from '../components/Setting.vue'
 
 import { generateRemoteUrl, generateUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
-import { showError, showSuccess } from '@nextcloud/dialogs'
-import { translate } from '@nextcloud/l10n'
 import { loadState } from '@nextcloud/initial-state'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { t } from '@nextcloud/l10n'
+import { useHotKey } from '@nextcloud/vue/dist/Composables/useHotKey.js'
 import { useUserConfigStore } from '../store/userconfig.ts'
-import { isDialogOpened } from '../utils/dialogUtils.ts'
 
 export default {
 	name: 'Settings',
@@ -240,6 +240,7 @@ export default {
 		const userConfigStore = useUserConfigStore()
 		return {
 			userConfigStore,
+			t,
 		}
 	},
 
@@ -263,16 +264,22 @@ export default {
 		},
 	},
 
+	created() {
+		// ? opens the settings dialog on the keyboard shortcuts section
+		useHotKey('?', this.showKeyboardShortcuts, {
+			stop: true,
+			prevent: true,
+		})
+	},
+
 	beforeMount() {
 		// Update the settings API entries state
 		this.settings.forEach(setting => setting.open())
-		document.addEventListener('keydown', this.onKeyDown)
 	},
 
 	beforeDestroy() {
 		// Update the settings API entries state
 		this.settings.forEach(setting => setting.close())
-		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
@@ -301,26 +308,15 @@ export default {
 			}, 5000)
 		},
 
-		async onKeyDown(event) {
-			if (isDialogOpened()) {
-				return
-			}
+		async showKeyboardShortcuts() {
+			this.$emit('update:open', true)
 
-			// ? opens the settings dialog on the keyboard shortcuts section
-			if (event.key === '?') {
-				event.preventDefault()
-				event.stopPropagation()
-				this.$emit('update:open', true)
-
-				await this.$nextTick()
-				document.getElementById('settings-section_shortcuts').scrollIntoView({
-					behavior: 'smooth',
-					inline: 'nearest',
-				})
-			}
+			await this.$nextTick()
+			document.getElementById('settings-section_shortcuts').scrollIntoView({
+				behavior: 'smooth',
+				inline: 'nearest',
+			})
 		},
-
-		t: translate,
 	},
 }
 </script>

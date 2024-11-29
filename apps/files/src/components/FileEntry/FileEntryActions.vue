@@ -81,28 +81,28 @@ import type { PropType } from 'vue'
 import type { FileAction, Node } from '@nextcloud/files'
 
 import { DefaultType, NodeStatus } from '@nextcloud/files'
+import { defineComponent, inject } from 'vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
-import { defineComponent, inject } from 'vue'
 
+import { useHotKey } from '@nextcloud/vue/dist/Composables/useHotKey.js'
+import ArrowLeftIcon from 'vue-material-design-icons/ArrowLeft.vue'
+import CustomElementRender from '../CustomElementRender.vue'
 import NcActionButton from '@nextcloud/vue/dist/Components/NcActionButton.js'
 import NcActions from '@nextcloud/vue/dist/Components/NcActions.js'
 import NcActionSeparator from '@nextcloud/vue/dist/Components/NcActionSeparator.js'
 import NcIconSvgWrapper from '@nextcloud/vue/dist/Components/NcIconSvgWrapper.js'
 import NcLoadingIcon from '@nextcloud/vue/dist/Components/NcLoadingIcon.js'
-import ArrowLeftIcon from 'vue-material-design-icons/ArrowLeft.vue'
-import CustomElementRender from '../CustomElementRender.vue'
 
-import { isDialogOpened } from '../../utils/dialogUtils.ts'
+import { ACTION_DELETE } from '../../actions/deleteAction.ts'
+import { ACTION_DETAILS } from '../../actions/sidebarAction.ts'
+import { ACTION_FAVORITE } from '../../actions/favoriteAction.ts'
+import { ACTION_RENAME } from '../../actions/renameAction.ts'
+import { useActiveStore } from '../../store/active.ts'
 import { useFileListWidth } from '../../composables/useFileListWidth.ts'
 import { useNavigation } from '../../composables/useNavigation'
 import { useRouteParameters } from '../../composables/useRouteParameters.ts'
 import logger from '../../logger.ts'
-import { ACTION_DETAILS } from '../../actions/sidebarAction.ts'
-import { ACTION_RENAME } from '../../actions/renameAction.ts'
-import { ACTION_DELETE } from '../../actions/deleteAction.ts'
-import { ACTION_FAVORITE } from '../../actions/favoriteAction.ts'
-import { useActiveStore } from '../../store/active.ts'
 
 export default defineComponent({
 	name: 'FileEntryActions',
@@ -245,12 +245,36 @@ export default defineComponent({
 		},
 	},
 
-	beforeMount() {
-		document.addEventListener('keydown', this.onKeyDown)
-	},
+	created() {
+		useHotKey('Escape', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
 
-	beforeDestroy() {
-		document.removeEventListener('keydown', this.onKeyDown)
+		useHotKey('a', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('d', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('F2', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('Delete', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('s', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
 	},
 
 	methods: {
@@ -332,16 +356,6 @@ export default defineComponent({
 		},
 
 		onKeyDown(event: KeyboardEvent) {
-			// Don't react to the event if a dialog is open
-			if (isDialogOpened()) {
-				return
-			}
-
-			// Don't react if ctrl, meta or alt key is pressed, we don't need those here
-			if (event.ctrlKey || event.altKey || event.metaKey) {
-				return
-			}
-
 			// Don't react to the event if the file row is not active
 			if (!this.isActive) {
 				return
@@ -349,43 +363,31 @@ export default defineComponent({
 
 			// ESC close the action menu if opened
 			if (event.key === 'Escape' && this.openedMenu) {
-				event.preventDefault()
-				event.stopPropagation()
 				this.openedMenu = false
 			}
 
 			// a open the action menu
 			if (event.key === 'a' && !this.openedMenu) {
-				event.preventDefault()
-				event.stopPropagation()
 				this.openedMenu = true
 			}
 
 			// d opens the sidebar
 			if (event.key === 'd') {
-				event.preventDefault()
-				event.stopPropagation()
 				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_DETAILS)!)
 			}
 
 			// F2 renames the file
 			if (event.key === 'F2') {
-				event.preventDefault()
-				event.stopPropagation()
 				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_RENAME)!)
 			}
 
 			// Delete key deletes the file with confirmation
 			if (event.key === 'Delete') {
-				event.preventDefault()
-				event.stopPropagation()
 				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_DELETE)!)
 			}
 
 			// s toggle favorite
 			if (event.key === 's') {
-				event.preventDefault()
-				event.stopPropagation()
 				this.onActionClick(this.enabledFileActions.find(action => action.id === ACTION_FAVORITE)!)
 			}
 

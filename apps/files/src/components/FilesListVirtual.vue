@@ -61,15 +61,15 @@ import type { Node as NcNode } from '@nextcloud/files'
 import type { ComponentPublicInstance, PropType } from 'vue'
 import type { UserConfig } from '../types'
 
+import { defineComponent } from 'vue'
 import { getFileListHeaders, Folder, View, getFileActions, FileType } from '@nextcloud/files'
 import { showError } from '@nextcloud/dialogs'
-import { translate as t } from '@nextcloud/l10n'
 import { subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { defineComponent } from 'vue'
+import { translate as t } from '@nextcloud/l10n'
+import { useHotKey } from '@nextcloud/vue/dist/Composables/useHotKey.js'
 
 import { action as sidebarAction } from '../actions/sidebarAction.ts'
 import { getSummaryFor } from '../utils/fileUtils'
-import { isDialogOpened } from '../utils/dialogUtils.ts'
 import { useActiveStore } from '../store/active.ts'
 import { useFileListWidth } from '../composables/useFileListWidth.ts'
 import { useRouteParameters } from '../composables/useRouteParameters.ts'
@@ -78,13 +78,13 @@ import { useUserConfigStore } from '../store/userconfig.ts'
 
 import FileEntry from './FileEntry.vue'
 import FileEntryGrid from './FileEntryGrid.vue'
+import FileListFilters from './FileListFilters.vue'
 import FilesListHeader from './FilesListHeader.vue'
 import FilesListTableFooter from './FilesListTableFooter.vue'
 import FilesListTableHeader from './FilesListTableHeader.vue'
-import VirtualList from './VirtualList.vue'
-import logger from '../logger.ts'
 import FilesListTableHeaderActions from './FilesListTableHeaderActions.vue'
-import FileListFilters from './FileListFilters.vue'
+import logger from '../logger.ts'
+import VirtualList from './VirtualList.vue'
 
 export default defineComponent({
 	name: 'FilesListVirtual',
@@ -227,21 +227,44 @@ export default defineComponent({
 		},
 	},
 
+	created() {
+		useHotKey('Escape', this.unselectFile, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('ArrowUp', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('ArrowDown', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('ArrowLeft', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+
+		useHotKey('ArrowRight', this.onKeyDown, {
+			stop: true,
+			prevent: true,
+		})
+	},
+
 	mounted() {
 		// Add events on parent to cover both the table and DragAndDrop notice
 		const mainContent = window.document.querySelector('main.app-content') as HTMLElement
 		mainContent.addEventListener('dragover', this.onDragOver)
-
 		subscribe('files:sidebar:closed', this.onSidebarClosed)
-		document.addEventListener('keydown', this.onKeyDown)
 	},
 
 	beforeDestroy() {
 		const mainContent = window.document.querySelector('main.app-content') as HTMLElement
 		mainContent.removeEventListener('dragover', this.onDragOver)
-
 		unsubscribe('files:sidebar:closed', this.onSidebarClosed)
-		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
@@ -360,20 +383,6 @@ export default defineComponent({
 		},
 
 		onKeyDown(event: KeyboardEvent) {
-			// Don't react to the event if a dialog is open
-			if (isDialogOpened()) {
-				return
-			}
-
-			// Don't react if ctrl, meta or alt key is pressed, we don't need those here
-			if (event.ctrlKey || event.altKey || event.metaKey) {
-				return
-			}
-
-			if (event.key === 'Escape') {
-				this.unselectFile()
-			}
-
 			// Up and down arrow keys
 			if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
 				const columnCount = this.$refs.table?.columnCount ?? 1

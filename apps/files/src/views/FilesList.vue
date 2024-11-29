@@ -148,35 +148,35 @@ import type { ComponentPublicInstance } from 'vue'
 import type { Route } from 'vue-router'
 import type { UserConfig } from '../types.ts'
 
-import { getCapabilities } from '@nextcloud/capabilities'
-import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
-import { Node, Permission, sortNodes, getFileListActions } from '@nextcloud/files'
-import { translate as t } from '@nextcloud/l10n'
-import { join, dirname, normalize } from 'path'
-import { showError, showWarning } from '@nextcloud/dialogs'
-import { ShareType } from '@nextcloud/sharing'
-import { UploadPicker, UploadStatus } from '@nextcloud/upload'
-import { loadState } from '@nextcloud/initial-state'
 import { defineComponent } from 'vue'
+import { emit, subscribe, unsubscribe } from '@nextcloud/event-bus'
+import { getCapabilities } from '@nextcloud/capabilities'
+import { join, dirname, normalize } from 'path'
+import { loadState } from '@nextcloud/initial-state'
+import { Node, Permission, sortNodes, getFileListActions } from '@nextcloud/files'
+import { ShareType } from '@nextcloud/sharing'
+import { showError, showWarning } from '@nextcloud/dialogs'
+import { translate as t } from '@nextcloud/l10n'
+import { UploadPicker, UploadStatus } from '@nextcloud/upload'
+import { useHotKey } from '@nextcloud/vue/dist/Composables/useHotKey.js'
 
+import AccountPlusIcon from 'vue-material-design-icons/AccountPlus.vue'
 import IconAlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import IconReload from 'vue-material-design-icons/Reload.vue'
 import LinkIcon from 'vue-material-design-icons/Link.vue'
 import ListViewIcon from 'vue-material-design-icons/FormatListBulletedSquare.vue'
-import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
-import NcActions from '@nextcloud/vue/dist/Components/NcActions.js'
 import NcActionButton from '@nextcloud/vue/dist/Components/NcActionButton.js'
+import NcActions from '@nextcloud/vue/dist/Components/NcActions.js'
+import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
 import NcEmptyContent from '@nextcloud/vue/dist/Components/NcEmptyContent.js'
 import NcIconSvgWrapper from '@nextcloud/vue/dist/Components/NcIconSvgWrapper.js'
 import NcLoadingIcon from '@nextcloud/vue/dist/Components/NcLoadingIcon.js'
 import PlusIcon from 'vue-material-design-icons/Plus.vue'
-import AccountPlusIcon from 'vue-material-design-icons/AccountPlus.vue'
 import ViewGridIcon from 'vue-material-design-icons/ViewGrid.vue'
 
 import { action as sidebarAction } from '../actions/sidebarAction.ts'
 import { humanizeWebDAVError } from '../utils/davUtils.ts'
-import { isDialogOpened } from '../utils/dialogUtils.ts'
 import { useFileListWidth } from '../composables/useFileListWidth.ts'
 import { useFilesStore } from '../store/files.ts'
 import { useFiltersStore } from '../store/filters.ts'
@@ -535,6 +535,21 @@ export default defineComponent({
 		},
 	},
 
+	created() {
+		// v toggle grid view
+		useHotKey('v', this.toggleGridView, {
+			stop: true,
+			prevent: true,
+		})
+
+		// alt+up go to parent directory
+		useHotKey('ArrowUp', this.goToPreviousDir, {
+			stop: true,
+			prevent: true,
+			alt: true,
+		})
+	},
+
 	mounted() {
 		this.filtersStore.init()
 		this.fetchContent()
@@ -544,16 +559,12 @@ export default defineComponent({
 
 		// Reload on settings change
 		subscribe('files:config:updated', this.fetchContent)
-
-		// Listen for keyboard events
-		document.addEventListener('keydown', this.onKeyDown)
 	},
 
 	unmounted() {
 		unsubscribe('files:node:deleted', this.onNodeDeleted)
 		unsubscribe('files:node:updated', this.onUpdatedNode)
 		unsubscribe('files:config:updated', this.fetchContent)
-		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
@@ -737,37 +748,14 @@ export default defineComponent({
 			this.dirContentsFiltered = nodes
 		},
 
-		onKeyDown(event: KeyboardEvent) {
-			// Don't react to the event if a dialog is open
-			if (isDialogOpened()) {
-				return
-			}
-
-			// alt + up goes to parent directory
-			if (event.key === 'ArrowUp' && event.altKey) {
-				event.preventDefault()
-				event.stopPropagation()
-				const prevDir = dirname(this.directory)
-				logger.debug('Navigating to parent directory', { prevDir })
-				window.OCP.Files.Router.goToRoute(
-					null,
-					{ ...this.$route.params },
-					{ ...this.$route.query, dir: prevDir },
-				)
-			}
-
-			// Don't react if ctrl, meta or alt key is pressed,
-			// we don't need those on the following shortcuts
-			if (event.ctrlKey || event.altKey || event.metaKey) {
-				return
-			}
-
-			// V toggle the grid view
-			if (event.key === 'v') {
-				event.preventDefault()
-				event.stopPropagation()
-				this.toggleGridView()
-			}
+		goToPreviousDir() {
+			const prevDir = dirname(this.directory)
+			logger.debug('Navigating to parent directory', { prevDir })
+			window.OCP.Files.Router.goToRoute(
+				null,
+				{ ...this.$route.params },
+				{ ...this.$route.query, dir: prevDir },
+			)
 		},
 	},
 })

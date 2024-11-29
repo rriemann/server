@@ -58,16 +58,15 @@ import type { Node } from '@nextcloud/files'
 import type { PropType } from 'vue'
 import type { FileSource } from '../types.ts'
 
-import { translate as t } from '@nextcloud/l10n'
 import { defineComponent } from 'vue'
-
+import { translate as t } from '@nextcloud/l10n'
+import { useHotKey } from '@nextcloud/vue/dist/Composables/useHotKey.js'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadioSwitch.js'
-import FilesListTableHeaderButton from './FilesListTableHeaderButton.vue'
 
-import { isDialogOpened } from '../utils/dialogUtils.ts'
 import { useFilesStore } from '../store/files.ts'
 import { useNavigation } from '../composables/useNavigation'
 import { useSelectionStore } from '../store/selection.ts'
+import FilesListTableHeaderButton from './FilesListTableHeaderButton.vue'
 import filesSortingMixin from '../mixins/filesSorting.ts'
 import logger from '../logger.ts'
 
@@ -156,12 +155,19 @@ export default defineComponent({
 		},
 	},
 
-	beforeMount() {
-		document.addEventListener('keydown', this.onKeyDown)
-	},
+	created() {
+		// ctrl+a selects all
+		useHotKey('a', this.onToggleAll, {
+			ctrl: true,
+			stop: true,
+			prevent: true,
+		})
 
-	beforeDestroy() {
-		document.removeEventListener('keydown', this.onKeyDown)
+		// Escape key cancels selection
+		useHotKey('Escape', this.resetSelection, {
+			stop: true,
+			prevent: true,
+		})
 	},
 
 	methods: {
@@ -181,33 +187,7 @@ export default defineComponent({
 			}
 		},
 
-		onKeyDown(event: KeyboardEvent) {
-			// Don't react to the event if a dialog is open
-			if (isDialogOpened()) {
-				return
-			}
-
-			// ctrl+a selects all
-			if (event.key === 'a' && event.ctrlKey) {
-				this.onToggleAll(true)
-				event.preventDefault()
-				event.stopPropagation()
-			}
-
-			// Don't react if ctrl, meta or alt key is pressed, we don't need those anymore
-			if (event.ctrlKey || event.altKey || event.metaKey) {
-				return
-			}
-
-			// Escape key cancels selection
-			if (event.key === 'Escape' && (this.isSomeSelected || this.isAllSelected)) {
-				this.resetSelection()
-				event.preventDefault()
-				event.stopPropagation()
-			}
-		},
-
-		onToggleAll(selected) {
+		onToggleAll(selected = true) {
 			if (selected) {
 				const selection = this.nodes.map(node => node.source).filter(Boolean) as FileSource[]
 				logger.debug('Added all nodes to selection', { selection })
