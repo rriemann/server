@@ -82,6 +82,123 @@
 				</a>
 			</em>
 		</NcAppSettingsSection>
+
+		<NcAppSettingsSection id="shortcuts"
+			:name="t('files', 'Keyboard shortcuts')">
+			<em>{{ t('files', 'Speed up yur Files experience with these quick shortcuts.') }}</em>
+
+			<h3>{{ t('files', 'Actions') }}</h3>
+			<dl>
+				<div>
+					<dt><kbd>A</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Open the actions menu for a file') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>F2</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Rename a file') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>Del</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Delete a file') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>S</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Favorite or remove a file from favorites') }}
+					</dd>
+				</div>
+			</dl>
+
+			<h3>{{ t('files', 'Selection') }}</h3>
+			<dl>
+				<div>
+					<dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Select all files') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>ESC</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Deselect all files') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>Ctrl</kbd> + <kbd>Space</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Select or deselect a file') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> <span>+ <kbd>Space</kbd></span></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Select a range of files') }}
+					</dd>
+				</div>
+			</dl>
+
+			<h3>{{ t('files', 'Navigation') }}</h3>
+			<dl>
+				<div>
+					<dt><kbd>↑</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Navigate to the file above') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>Alt</kbd> + <kbd>↑</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Navigate to the parent folder') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>↓</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Navigate to the file below') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>←</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Navigate to the file on the left (in grid mode)') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>→</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Navigate to the file on the right (in grid mode)') }}
+					</dd>
+				</div>
+			</dl>
+
+			<h3>{{ t('files', 'View') }}</h3>
+			<dl>
+				<div>
+					<dt><kbd>V</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Toggle the grid view') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>D</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Open the sidebar for a file') }}
+					</dd>
+				</div>
+				<div>
+					<dt><kbd>?</kbd></dt>
+					<dd class="shortcut-description">
+						{{ t('files', 'Show those shortcuts') }}
+					</dd>
+				</div>
+			</dl>
+		</NcAppSettingsSection>
 	</NcAppSettingsDialog>
 </template>
 
@@ -99,6 +216,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate } from '@nextcloud/l10n'
 import { loadState } from '@nextcloud/initial-state'
 import { useUserConfigStore } from '../store/userconfig.ts'
+import { isDialogOpened } from '../utils/dialogUtils.ts'
 
 export default {
 	name: 'Settings',
@@ -148,11 +266,13 @@ export default {
 	beforeMount() {
 		// Update the settings API entries state
 		this.settings.forEach(setting => setting.open())
+		document.addEventListener('keydown', this.onKeyDown)
 	},
 
 	beforeDestroy() {
 		// Update the settings API entries state
 		this.settings.forEach(setting => setting.close())
+		document.removeEventListener('keydown', this.onKeyDown)
 	},
 
 	methods: {
@@ -181,6 +301,25 @@ export default {
 			}, 5000)
 		},
 
+		async onKeyDown(event) {
+			if (isDialogOpened()) {
+				return
+			}
+
+			// ? opens the settings dialog on the keyboard shortcuts section
+			if (event.key === '?') {
+				event.preventDefault()
+				event.stopPropagation()
+				this.$emit('update:open', true)
+
+				await this.$nextTick()
+				document.getElementById('settings-section_shortcuts').scrollIntoView({
+					behavior: 'smooth',
+					inline: 'nearest',
+				})
+			}
+		},
+
 		t: translate,
 	},
 }
@@ -189,5 +328,15 @@ export default {
 <style lang="scss" scoped>
 .setting-link:hover {
 	text-decoration: underline;
+}
+
+dt {
+	width: 160px;
+	// some shortcuts are too long to fit in one line
+	white-space: normal;
+	span {
+		// force portion of a shortcut on a new line for nicer display
+		white-space: nowrap;
+	}
 }
 </style>
