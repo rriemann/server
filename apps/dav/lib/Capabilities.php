@@ -26,6 +26,7 @@ namespace OCA\DAV;
 
 use OCP\Capabilities\ICapability;
 use OCP\IConfig;
+use OCP\User\IAvailabilityCoordinator;
 
 class Capabilities implements ICapability {
 	private IConfig $config;
@@ -35,7 +36,7 @@ class Capabilities implements ICapability {
 	}
 
 	/**
-	 * @return array{dav: array{chunking: string, bulkupload?: string}}
+	 * @return array{dav: array{chunking: string, bulkupload?: string, absence-supported?: bool}}
 	 */
 	public function getCapabilities() {
 		$capabilities = [
@@ -45,6 +46,9 @@ class Capabilities implements ICapability {
 		];
 		if ($this->config->getSystemValueBool('bulkupload.enabled', true)) {
 			$capabilities['dav']['bulkupload'] = '1.0';
+		}
+		if ($this->coordinator->isEnabled()) {
+			$capabilities['dav']['absence-supported'] = true;
 		}
 		return $capabilities;
 	}
