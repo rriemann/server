@@ -86,6 +86,7 @@ class CapabilitiesTest extends TestCase {
 			'dav' => [
 				'chunking' => '1.0',
 				'absence-supported' => true,
+				'absence-replacement' => true,
 			],
 		];
 		$this->assertSame($expected, $capabilities->getCapabilities());
