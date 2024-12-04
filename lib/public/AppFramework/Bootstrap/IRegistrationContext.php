@@ -425,8 +425,8 @@ interface IRegistrationContext {
 
 
 	/**
-	 * Register an implementation of \OCP\ConfigLexicon\IConfigLexicon that
-	 * will handle the implementation of config lexicon
+	 * Register an implementation of \OCP\Config\Lexicon\IConfigLexicon that
+	 * will handle the config lexicon
 	 *
 	 * @param string $configLexiconClass
 	 *

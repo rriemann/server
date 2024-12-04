@@ -15,7 +15,6 @@ use NCU\Config\ValueType;
  *
  * @see IConfigLexicon
  * @experimental 31.0.0
- * @since 31.0.0
  */
 class ConfigLexiconEntry {
 	private string $definition = '';
@@ -29,7 +28,7 @@ class ConfigLexiconEntry {
 	 * @param int $flags set flags
 	 * @param bool $deprecated set config key as deprecated
 	 *
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function __construct(
 		private readonly string $key,
@@ -61,7 +60,7 @@ class ConfigLexiconEntry {
 	 * @inheritDoc
 	 *
 	 * @return string config key
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getKey(): string {
 		return $this->key;
@@ -71,7 +70,7 @@ class ConfigLexiconEntry {
 	 * @inheritDoc
 	 *
 	 * @return ValueType
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getValueType(): ValueType {
 		return $this->type;
@@ -80,7 +79,7 @@ class ConfigLexiconEntry {
 	/**
 	 * @param string $default
 	 * @return string
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	private function convertFromString(string $default): string {
 		return $default;
@@ -89,7 +88,7 @@ class ConfigLexiconEntry {
 	/**
 	 * @param int $default
 	 * @return string
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	private function convertFromInt(int $default): string {
 		return (string)$default;
@@ -98,7 +97,7 @@ class ConfigLexiconEntry {
 	/**
 	 * @param float $default
 	 * @return string
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	private function convertFromFloat(float $default): string {
 		return (string)$default;
@@ -107,7 +106,7 @@ class ConfigLexiconEntry {
 	/**
 	 * @param bool $default
 	 * @return string
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	private function convertFromBool(bool $default): string {
 		return ($default) ? '1' : '0';
@@ -116,7 +115,7 @@ class ConfigLexiconEntry {
 	/**
 	 * @param array $default
 	 * @return string
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	private function convertFromArray(array $default): string {
 		return json_encode($default);
@@ -126,7 +125,7 @@ class ConfigLexiconEntry {
 	 * @inheritDoc
 	 *
 	 * @return string|null NULL if no default is set
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getDefault(): ?string {
 		return $this->default;
@@ -136,7 +135,7 @@ class ConfigLexiconEntry {
 	 * @inheritDoc
 	 *
 	 * @return string
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getDefinition(): string {
 		return $this->definition;
@@ -147,7 +146,7 @@ class ConfigLexiconEntry {
 	 *
 	 * @see IAppConfig for details on lazy config values
 	 * @return bool TRUE if config value is lazy
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function isLazy(): bool {
 		return $this->lazy;
@@ -158,7 +157,7 @@ class ConfigLexiconEntry {
 	 *
 	 * @see IAppConfig for details on sensitive config values
 	 * @return int bitflag about the config value
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getFlags(): int {
 		return $this->flags;
@@ -168,7 +167,7 @@ class ConfigLexiconEntry {
 	 * @param int $flag
 	 *
 	 * @return bool TRUE is config value bitflag contains $flag
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function isFlagged(int $flag): bool {
 		return (bool)($flag & $this->getFlags());
@@ -178,7 +177,7 @@ class ConfigLexiconEntry {
 	 * @inheritDoc
 	 *
 	 * @return bool TRUE if config si deprecated
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function isDeprecated(): bool {
 		return $this->deprecated;

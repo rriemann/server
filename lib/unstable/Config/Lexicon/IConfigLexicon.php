@@ -12,7 +12,6 @@ namespace NCU\Config\Lexicon;
  * This interface needs to be implemented if you want to define a config lexicon for your application
  * The config lexicon is used to avoid conflicts and problems when storing/retrieving config values
  *
- * @since 31.0.0
  * @experimental 31.0.0
  */
 interface IConfigLexicon {
@@ -23,7 +22,7 @@ interface IConfigLexicon {
 	 *
 	 * @see ConfigLexiconStrictness
 	 * @return ConfigLexiconStrictness
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getStrictness(): ConfigLexiconStrictness;
 
@@ -31,7 +30,7 @@ interface IConfigLexicon {
 	 * define the list of entries of your application config lexicon, related to AppConfig.
 	 *
 	 * @return ConfigLexiconEntry[]
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getAppConfigs(): array;
 
@@ -39,7 +38,7 @@ interface IConfigLexicon {
 	 * define the list of entries of your application config lexicon, related to UserPreferences.
 	 *
 	 * @return ConfigLexiconEntry[]
-	 * @since 31.0.0
+	 * @experimental 31.0.0
 	 */
 	public function getUserPreferences(): array;
 }

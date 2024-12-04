@@ -1577,6 +1577,7 @@ class AppConfig implements IAppConfig {
 	 *
 	 * @throws AppConfigUnknownKeyException
 	 * @throws AppConfigTypeConflictException
+	 * @return bool TRUE if everything is fine compared to lexicon or lexicon does not exist
 	 */
 	private function compareRegisteredConfigValues(
 		string $app,
@@ -1591,7 +1592,7 @@ class AppConfig implements IAppConfig {
 				'installed_version',
 				'types',
 			])) {
-			return true; // we don't break stuff for this list of config key.
+			return true; // we don't break stuff for this list of config keys.
 		}
 		$configDetails = $this->getConfigDetailsFromLexicon($app);
 		if (!array_key_exists($key, $configDetails['entries'])) {
@@ -1605,9 +1606,10 @@ class AppConfig implements IAppConfig {
 		$configValue = $configDetails['entries'][$key];
 		$type &= ~self::VALUE_SENSITIVE;
 
+		$appConfigValueType = $configValue->getValueType()->toAppConfigFlag();
 		if ($type === self::VALUE_MIXED) {
-			$type = $configValue->getValueType()->value; // we overwrite if value was requested as mixed
-		} elseif ($configValue->getValueType()->value !== $type) {
+			$type = $appConfigValueType; // we overwrite if value was requested as mixed
+		} elseif ($appConfigValueType !== $type) {
 			throw new AppConfigTypeConflictException('The app config key ' . $app . '/' . $key . ' is typed incorrectly in relation to the config lexicon');
 		}
 
@@ -1626,13 +1628,12 @@ class AppConfig implements IAppConfig {
 	/**
 	 * manage ConfigLexicon behavior based on strictness set in IConfigLexicon
 	 *
-	 * @see IConfigLexicon::getStrictness()
-	 * @param string $app
-	 * @param string $key
-	 * @param ConfigLexiconStrictness $strictness
+	 * @param ConfigLexiconStrictness|null $strictness
+	 * @param string $line
 	 *
-	 * @return bool TRUE if conflict can be fully ignored
-	 * @throws AppConfigUnknownKeyException
+	 * @return bool TRUE if conflict can be fully ignored, FALSE if action should be not performed
+	 * @throws AppConfigUnknownKeyException if strictness implies exception
+	 * @see IConfigLexicon::getStrictness()
 	 */
 	private function applyLexiconStrictness(
 		?ConfigLexiconStrictness $strictness,

@@ -16,16 +16,15 @@ namespace NCU\Config\Lexicon;
  * - **ConfigLexiconStrictness::WARNING** - silently block (returns $default) and report
  * - **ConfigLexiconStrictness::EXCEPTION** - block (throws exception) and report
  *
- * @since 31.0.0
  * @experimental 31.0.0
  */
 enum ConfigLexiconStrictness: int {
-	/** @since 31.0.0 */
+	/** @experimental 31.0.0 */
 	case IGNORE = 0; // fully ignore
-	/** @since 31.0.0 */
+	/** @experimental 31.0.0 */
 	case NOTICE = 2; // ignore and report
-	/** @since 31.0.0 */
+	/** @experimental 31.0.0 */
 	case WARNING = 3; // silently block (returns $default) and report
-	/** @since 31.0.0 */
+	/** @experimental 31.0.0 */
 	case EXCEPTION = 5; // block (throws exception) and report
 }
